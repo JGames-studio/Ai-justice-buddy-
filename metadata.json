@@ -1,0 +1,6 @@
+{
+  "name": "Ai justice buddy ( powerd by Gemini)",
+  "description": "Your virtual AI legal advisor with state and federal laws, voice command search, cartoon lawyer avatars, lawyer directories with reviews, file analysis, reminders, dynamic classes, and interactive legal quizzes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
