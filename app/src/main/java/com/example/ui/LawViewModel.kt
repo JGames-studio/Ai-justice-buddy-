@@ -587,7 +587,7 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                         caseList.forEachIndexed { index, case ->
                             val sanitized = case.title
                                 .take(MAX_TITLE_LENGTH_FOR_FILENAME)
-                                .replace(Regex("[^A-Za-z0-9_]"), "_")
+                                .replace(Regex("[^A-Za-z0-9_-]"), "_")
                                 .trim('_')
                                 .ifBlank { "untitled" }
                             val entryName = "case_${index + 1}_$sanitized.txt"
@@ -641,7 +641,7 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         } catch (e: Exception) {
-            _zipCreationError.value = "ZIP file not found. Please create it first."
+            _zipCreationError.value = "Failed to share ZIP file: ${e.localizedMessage}"
         }
     }
 
