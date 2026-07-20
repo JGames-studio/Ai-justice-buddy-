@@ -42,7 +42,10 @@ fun CaseFilesScreen(viewModel: LawViewModel) {
     }
 
     LaunchedEffect(zipCreationError) {
-        zipCreationError?.let { snackbarHostState.showSnackbar(it) }
+        zipCreationError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearZipCreationError()
+        }
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { innerPadding ->

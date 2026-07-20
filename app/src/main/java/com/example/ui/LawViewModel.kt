@@ -567,6 +567,10 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
         _zipFileExists.value = getZipFile(context).exists()
     }
 
+    fun clearZipCreationError() {
+        _zipCreationError.value = null
+    }
+
     fun createCasesZip(context: Context) {
         _isCreatingZip.value = true
         _zipCreationError.value = null
@@ -581,7 +585,12 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                         zip.closeEntry()
                     } else {
                         caseList.forEachIndexed { index, case ->
-                            val entryName = "case_${index + 1}_${case.title.take(MAX_TITLE_LENGTH_FOR_FILENAME).replace(Regex("[^A-Za-z0-9_-]"), "_")}.txt"
+                            val sanitized = case.title
+                                .take(MAX_TITLE_LENGTH_FOR_FILENAME)
+                                .replace(Regex("[^A-Za-z0-9_]"), "_")
+                                .trim('_')
+                                .ifBlank { "untitled" }
+                            val entryName = "case_${index + 1}_$sanitized.txt"
                             zip.putNextEntry(ZipEntry(entryName))
                             val content = buildString {
                                 appendLine("=== AI Justice Buddy Case Export ===")
@@ -620,16 +629,20 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
     fun shareCasesZip(context: Context) {
         val zipFile = getZipFile(context)
         if (!zipFile.exists()) return
-        val uri = FileProvider.getUriForFile(context, "com.example.fileprovider", zipFile)
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/zip"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "AI Justice Buddy - Case Files Export")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            val uri = FileProvider.getUriForFile(context, "com.example.fileprovider", zipFile)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/zip"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "AI Justice Buddy - Case Files Export")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(Intent.createChooser(intent, "Share Case Files ZIP").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        } catch (e: Exception) {
+            _zipCreationError.value = "ZIP file not found. Please create it first."
         }
-        context.startActivity(Intent.createChooser(intent, "Share Case Files ZIP").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        })
     }
 
     // --- Admin Control Panel (System Prompt Editing & Audited Bookkeeping) ---
