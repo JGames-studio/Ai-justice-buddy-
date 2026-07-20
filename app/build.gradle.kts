@@ -13,6 +13,9 @@ android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
+  val releaseKeystoreFile =
+    file(System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks")
+
   defaultConfig {
     applicationId = "com.aistudio.ailawyer.qpxwrt"
     minSdk = 24
@@ -25,10 +28,8 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      val keystoreFile = file(keystorePath)
-      if (keystoreFile.exists()) {
-        storeFile = keystoreFile
+      if (releaseKeystoreFile.exists()) {
+        storeFile = releaseKeystoreFile
         storePassword = System.getenv("STORE_PASSWORD")
         keyAlias = "upload"
         keyPassword = System.getenv("KEY_PASSWORD")
@@ -41,8 +42,7 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      if (file(keystorePath).exists()) {
+      if (releaseKeystoreFile.exists()) {
         signingConfig = signingConfigs.getByName("release")
       }
     }
