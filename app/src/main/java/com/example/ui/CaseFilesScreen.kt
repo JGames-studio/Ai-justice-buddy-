@@ -32,15 +32,23 @@ fun CaseFilesScreen(viewModel: LawViewModel) {
     val context = LocalContext.current
     val zipExists by viewModel.zipFileExists.collectAsState()
     val isCreatingZip by viewModel.isCreatingZip.collectAsState()
+    val zipCreationError by viewModel.zipCreationError.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.checkZipExists(context)
     }
 
+    LaunchedEffect(zipCreationError) {
+        zipCreationError?.let { snackbarHostState.showSnackbar(it) }
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .padding(innerPadding)
     ) {
         Text(
             text = "Case Folders",
@@ -80,6 +88,7 @@ fun CaseFilesScreen(viewModel: LawViewModel) {
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     if (zipExists) {
+                        // Status chip is display-only; onClick is intentionally empty
                         SuggestionChip(
                             onClick = {},
                             label = { Text("ZIP Ready", fontSize = 10.sp) },
@@ -304,4 +313,5 @@ fun CaseFilesScreen(viewModel: LawViewModel) {
             }
         }
     }
+    } // end Scaffold
 }

@@ -209,6 +209,9 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
     private val _isCreatingZip = MutableStateFlow(false)
     val isCreatingZip = _isCreatingZip.asStateFlow()
 
+    private val _zipCreationError = MutableStateFlow<String?>(null)
+    val zipCreationError = _zipCreationError.asStateFlow()
+
     // --- App Security & PIN Confidentiality Lock ---
     private val _pinCode = MutableStateFlow<String?>(null) // null means PIN security disabled
     val pinCode = _pinCode.asStateFlow()
@@ -553,6 +556,10 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
 
     // --- ZIP Export / Download ---
 
+    private companion object {
+        const val MAX_TITLE_LENGTH_FOR_FILENAME = 30
+    }
+
     private fun getZipFile(context: Context) =
         File(context.cacheDir, "cases_backup.zip")
 
@@ -562,6 +569,7 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
 
     fun createCasesZip(context: Context) {
         _isCreatingZip.value = true
+        _zipCreationError.value = null
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val caseList = repository.allCases.firstOrNull() ?: emptyList()
@@ -573,7 +581,7 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                         zip.closeEntry()
                     } else {
                         caseList.forEachIndexed { index, case ->
-                            val entryName = "case_${index + 1}_${case.title.take(30).replace(Regex("[^A-Za-z0-9_-]"), "_")}.txt"
+                            val entryName = "case_${index + 1}_${case.title.take(MAX_TITLE_LENGTH_FOR_FILENAME).replace(Regex("[^A-Za-z0-9_-]"), "_")}.txt"
                             zip.putNextEntry(ZipEntry(entryName))
                             val content = buildString {
                                 appendLine("=== AI Justice Buddy Case Export ===")
@@ -594,9 +602,9 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                     }
                 }
                 _zipFileExists.value = true
-            } catch (_: Exception) {
-                // If writing fails, ensure state is accurate
+            } catch (e: Exception) {
                 _zipFileExists.value = getZipFile(context).exists()
+                _zipCreationError.value = "ZIP creation failed: ${e.localizedMessage}"
             } finally {
                 _isCreatingZip.value = false
             }
