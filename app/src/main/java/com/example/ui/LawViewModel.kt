@@ -556,7 +556,7 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
 
     // --- ZIP Export / Download ---
 
-    private companion object {
+    companion object {
         const val MAX_TITLE_LENGTH_FOR_FILENAME = 30
     }
 
