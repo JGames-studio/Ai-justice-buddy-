@@ -7,16 +7,22 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.Manifest
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -195,6 +201,13 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
 
     private val _donationPercentage = MutableStateFlow(15)
     val donationPercentage = _donationPercentage.asStateFlow()
+
+    // --- ZIP Export State ---
+    private val _zipFileExists = MutableStateFlow(false)
+    val zipFileExists = _zipFileExists.asStateFlow()
+
+    private val _isCreatingZip = MutableStateFlow(false)
+    val isCreatingZip = _isCreatingZip.asStateFlow()
 
     // --- App Security & PIN Confidentiality Lock ---
     private val _pinCode = MutableStateFlow<String?>(null) // null means PIN security disabled
@@ -536,6 +549,79 @@ class LawViewModel(application: Application) : AndroidViewModel(application), Te
                 repository.deleteReminder(it.id)
             }
         }
+    }
+
+    // --- ZIP Export / Download ---
+
+    private fun getZipFile(context: Context) =
+        File(context.cacheDir, "cases_backup.zip")
+
+    fun checkZipExists(context: Context) {
+        _zipFileExists.value = getZipFile(context).exists()
+    }
+
+    fun createCasesZip(context: Context) {
+        _isCreatingZip.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val caseList = repository.allCases.firstOrNull() ?: emptyList()
+                val zipFile = getZipFile(context)
+                ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
+                    if (caseList.isEmpty()) {
+                        zip.putNextEntry(ZipEntry("README.txt"))
+                        zip.write("No case files found to export.".toByteArray())
+                        zip.closeEntry()
+                    } else {
+                        caseList.forEachIndexed { index, case ->
+                            val entryName = "case_${index + 1}_${case.title.take(30).replace(Regex("[^A-Za-z0-9_-]"), "_")}.txt"
+                            zip.putNextEntry(ZipEntry(entryName))
+                            val content = buildString {
+                                appendLine("=== AI Justice Buddy Case Export ===")
+                                appendLine("Title   : ${case.title}")
+                                appendLine("State   : ${case.state}")
+                                appendLine("Status  : ${case.status}")
+                                appendLine("Created : ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(case.timestamp))}")
+                                appendLine()
+                                appendLine("--- Stated Facts ---")
+                                appendLine(case.description)
+                                appendLine()
+                                appendLine("--- AI Legal Counsel Feedback ---")
+                                appendLine(case.aiFeedback)
+                            }
+                            zip.write(content.toByteArray(Charsets.UTF_8))
+                            zip.closeEntry()
+                        }
+                    }
+                }
+                _zipFileExists.value = true
+            } catch (_: Exception) {
+                // If writing fails, ensure state is accurate
+                _zipFileExists.value = getZipFile(context).exists()
+            } finally {
+                _isCreatingZip.value = false
+            }
+        }
+    }
+
+    fun eraseCasesZip(context: Context) {
+        val zipFile = getZipFile(context)
+        if (zipFile.exists()) zipFile.delete()
+        _zipFileExists.value = false
+    }
+
+    fun shareCasesZip(context: Context) {
+        val zipFile = getZipFile(context)
+        if (!zipFile.exists()) return
+        val uri = FileProvider.getUriForFile(context, "com.example.fileprovider", zipFile)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "AI Justice Buddy - Case Files Export")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Case Files ZIP").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
     }
 
     // --- Admin Control Panel (System Prompt Editing & Audited Bookkeeping) ---

@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,13 @@ import java.util.Locale
 fun CaseFilesScreen(viewModel: LawViewModel) {
     val casesList by viewModel.cases.collectAsState()
     var expandedCaseId by remember { mutableStateOf<Int?>(null) }
+    val context = LocalContext.current
+    val zipExists by viewModel.zipFileExists.collectAsState()
+    val isCreatingZip by viewModel.isCreatingZip.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.checkZipExists(context)
+    }
 
     Column(
         modifier = Modifier
@@ -45,6 +53,98 @@ fun CaseFilesScreen(viewModel: LawViewModel) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ZIP Export Controls
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(16.dp),
+            border = CardStrokeHelper.cardStroke()
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.FolderZip,
+                        contentDescription = "ZIP Export",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Case Files ZIP Export",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (zipExists) {
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text("ZIP Ready", fontSize = 10.sp) },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            )
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Create ZIP
+                    Button(
+                        onClick = { viewModel.createCasesZip(context) },
+                        enabled = !isCreatingZip,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+                    ) {
+                        if (isCreatingZip) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Icon(Icons.Default.Archive, contentDescription = "Create ZIP", modifier = Modifier.size(14.dp))
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (isCreatingZip) "Creating…" else "Create ZIP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Download / Share ZIP (visible when zip exists)
+                    if (zipExists) {
+                        Button(
+                            onClick = { viewModel.shareCasesZip(context) },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = "Download ZIP", modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Download ZIP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // Erase ZIP
+                        OutlinedButton(
+                            onClick = { viewModel.eraseCasesZip(context) },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = "Erase ZIP", modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Erase ZIP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
