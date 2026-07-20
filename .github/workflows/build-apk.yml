@@ -70,6 +70,7 @@ jobs:
             **Build:** #${{ github.run_number }}
             **Commit:** ${{ github.sha }}
           files: release-assets/AI-Justice-Buddy-debug.apk
+          draft: true
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
