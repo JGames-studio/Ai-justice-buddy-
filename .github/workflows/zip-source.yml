@@ -21,7 +21,6 @@ jobs:
         run: |
           zip -r AI-Justice-Buddy-source.zip . \
             --exclude ".git/*" \
-            --exclude ".github/*" \
             --exclude "*.zip"
 
       - name: Upload source ZIP artifact
