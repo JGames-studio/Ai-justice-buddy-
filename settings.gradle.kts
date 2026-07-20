@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Ai justice buddy ( powerd by Gemini)"
+rootProject.name = "Ai justice buddy ( powered by Gemini)"
 
 include(":app")
