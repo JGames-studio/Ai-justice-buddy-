@@ -1,0 +1,31 @@
+name: Package Source as ZIP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zip-source:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create source ZIP
+        run: |
+          zip -r AI-Justice-Buddy-source.zip . \
+            --exclude ".git/*" \
+            --exclude "*.zip"
+
+      - name: Upload source ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Justice-Buddy-source
+          path: AI-Justice-Buddy-source.zip
+          if-no-files-found: error
