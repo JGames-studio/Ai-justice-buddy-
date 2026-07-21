@@ -34,6 +34,10 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "Error: GEMINI_API_KEY secret is not configured in repository secrets." >&2
+            exit 1
+          fi
           printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env
 
       - name: Run unit tests
