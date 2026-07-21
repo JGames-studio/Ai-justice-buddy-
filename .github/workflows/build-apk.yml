@@ -30,6 +30,15 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      - name: Write private secrets to .env
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env
+
+      - name: Run unit tests
+        run: ./gradlew test
+
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
